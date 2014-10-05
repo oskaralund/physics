@@ -1,5 +1,5 @@
 #include "pbd_framework.h"
-#include <CUDA/cuda_gl_interop.h>
+#include <cuda_gl_interop.h>
 
 void PBDFramework::CreateVertexBuffers()
 {
