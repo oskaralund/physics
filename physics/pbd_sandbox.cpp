@@ -119,7 +119,7 @@ void PBDSandbox::DrawScene()
 
 void PBDSandbox::UpdateDynamics(double dt)
 {
-  MoveCamera(dt);
+  MoveCamera(static_cast<float>(dt));
 }
 
 void PBDSandbox::CreateMatrixBuffer()
