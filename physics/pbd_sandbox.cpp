@@ -22,8 +22,6 @@ void PBDSandbox::HandleMouseMove(double x, double y)
   CenterCursor();
   prev_x_ = 0.0f;
   prev_y_ = 0.0f;
-
-  vertex_manipulator_->MouseMoveCallback(x, y);
 }
 
 void PBDSandbox::HandleMouseButton(int button, int action, int mods)
@@ -33,10 +31,8 @@ void PBDSandbox::HandleMouseButton(int button, int action, int mods)
   switch (action)
   {
   case GLFW_PRESS:
-    vertex_manipulator_->MouseDownCallback(x, y);
     break;
   case GLFW_RELEASE:
-    vertex_manipulator_->MouseUpCallback(x, y);
     break;
   }
 
@@ -71,7 +67,6 @@ void PBDSandbox::HandleKey(int key, int scancode, int action, int mods)
       glfwSetWindowShouldClose(GetGLFWWindowPointer(), 1);
       break;
     case GLFW_KEY_T:
-      cloth_->AddForce(0, vec3{10.0f, 0.0f, 0.0f});
       break;
     }
     break;
@@ -114,120 +109,17 @@ PBDSandbox::PBDSandbox()
 {
   CreateMatrixBuffer();
   camera_.SetPosition(vec3{0.0f, 0.0f, 1.0f});
-
-  const int N = 35;
-  const float side_length = 1.0f;
-  /* Construct triangle mesh */
-  for (float i = 0; i < N; ++i)
-  {
-    for (float j = 0; j < N; ++j)
-    {
-      mesh_.AddVertex(vec3{side_length*i/(N-1), 0.0f, side_length*j/(N-1)});
-    }
-  }
-
-  for (int i = 0; i < N-1; ++i)
-  {
-    for (int j = 0; j < N-1; ++j)
-    {
-      mesh_.AddTriangle(j + i*N, j + i*N+1, j + i*N+N+1);
-      mesh_.AddTriangle(j + i*N, j + i*N+N+1, j + i*N+N);
-    }
-  }
-
-  cloth_ = std::make_unique<PBDFramework>(mesh_);
-  vertex_manipulator_ = std::make_unique<VertexManipulator>(cloth_.get(), &camera_);
-  vertex_manipulator_->SetPickingForce(10.0f);
-
-  glGenVertexArrays(1, &vao_);
-  glBindVertexArray(vao_);
-  glGenBuffers(1, &vbo_);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo_);
-  const std::vector<vec3>& verts = cloth_->GetVertices();
-  glBufferData(GL_ARRAY_BUFFER,
-               verts.capacity()*sizeof(vec3),
-               &verts[0][0],
-               GL_DYNAMIC_DRAW);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-  glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-  glGenBuffers(1, &element_buffer_);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer_);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-               mesh_.GetNumTriangles()*3*sizeof(int), &mesh_.GetTriangles()[0][0], GL_DYNAMIC_DRAW);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-  mesh_.ComputeVertexNormals();
-  glGenBuffers(1, &normal_vbo_);
-  glBindBuffer(GL_ARRAY_BUFFER, normal_vbo_);
-  const std::vector<vec3>& norms = mesh_.GetVertexNormals();
-  glBufferData(GL_ARRAY_BUFFER,
-               norms.capacity()*sizeof(vec3),
-               &norms[0][0],
-               GL_DYNAMIC_DRAW);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-  glEnableVertexAttribArray(1);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
-
-  shader_ = oskgl::CompileShaderProgram("basic_vshader.vsh", "basic_fshader.fsh");
-  glUseProgram(shader_);
-  glUniformMatrix4fv(0, 1, GL_FALSE, value_ptr(mat4{1.0f}));
 }
 
 void PBDSandbox::DrawScene()
 {
   UpdateViewMatrix();
   grid_vis_.Draw();
-  glUseProgram(shader_);
-  glBindBuffer(GL_ARRAY_BUFFER, normal_vbo_);
-  mesh_.vertices_ = cloth_->GetVertices();
-  mesh_.ComputeVertexNormals();
-  const std::vector<vec3>& norms = mesh_.GetVertexNormals();
-  glBufferData(GL_ARRAY_BUFFER,
-               norms.capacity()*sizeof(vec3),
-               &norms[0][0],
-               GL_DYNAMIC_DRAW);
-  mat4 view = camera_.GetViewMatrix();
-  mat3 norm_to_cam = mat3{vec3{view[0]}, vec3{view[1]}, vec3{view[2]}};
-  glUniformMatrix4fv(3, 1, GL_FALSE, value_ptr(norm_to_cam));
-  vec3 dir_to_light = normalize(vec3{1.0f, 1.0f, 0.0f});
-  glUniform3fv(1, 1, value_ptr(dir_to_light));
-  vec4 light_intensity = vec4{1.0f, 1.0f, 1.0f, 1.0f};
-  glUniform4fv(2, 1, value_ptr(light_intensity));
-  glBindBuffer(GL_ARRAY_BUFFER, vbo_);
-  const std::vector<vec3>& verts = cloth_->GetVertices();
-  glBufferData(GL_ARRAY_BUFFER,
-               verts.capacity()*sizeof(vec3),
-               &verts[0][0],
-               GL_DYNAMIC_DRAW);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(vao_);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer_);
-  glDrawElements(GL_TRIANGLES, 3*static_cast<int>(mesh_.GetNumTriangles()), GL_UNSIGNED_INT, 0);
 }
 
 void PBDSandbox::UpdateDynamics(double dt)
 {
-  MoveCamera(static_cast<float>(dt));
-  time_accumulator_ += static_cast<float>(dt);
-  while (time_accumulator_ > cloth_->GetTimestep())
-  {
-    cloth_->Move();
-    vertex_manipulator_->Update();
-    time_accumulator_ -= cloth_->GetTimestep();
-    for (int i = 0; i < cloth_->GetNumVertices(); ++i)
-    {
-      float y = cloth_->GetVertex(i).y;
-      if (y < -0.999f)
-      {
-        cloth_->Displace(i, vec3{0.0f, -0.999f - y, 0.0f});
-        //ridiculous friction
-        cloth_->AddForce(i, -cloth_->GetMass(i)*cloth_->GetVelocity(i));
-      }
-    }
-  }
+  MoveCamera(dt);
 }
 
 void PBDSandbox::CreateMatrixBuffer()

@@ -39,17 +39,10 @@ private:
   double prev_x_ = 0.0;
   double prev_y_ = 0.0;
   FPSCamera camera_;
-  TriangleMesh mesh_;
-  std::unique_ptr<PBDFramework> cloth_;
   GridVis grid_vis_{1000, 1.0f, glm::vec3{0.0f, -1.0f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f}};
   std::unique_ptr<VertexManipulator> vertex_manipulator_;
 
   GLuint matrix_buffer_;
-  GLuint vbo_;
-  GLuint normal_vbo_;
-  GLuint vao_;
-  GLuint element_buffer_;
-  GLuint shader_;
 };
 
 #endif
