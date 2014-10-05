@@ -205,7 +205,7 @@ void PBDSandbox::DrawScene()
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(vao_);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer_);
-  glDrawElements(GL_TRIANGLES, 3*mesh_.GetNumTriangles(), GL_UNSIGNED_INT, 0);
+  glDrawElements(GL_TRIANGLES, 3*static_cast<int>(mesh_.GetNumTriangles()), GL_UNSIGNED_INT, 0);
 }
 
 void PBDSandbox::UpdateDynamics(double dt)

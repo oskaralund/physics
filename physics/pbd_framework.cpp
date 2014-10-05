@@ -204,7 +204,7 @@ void PBDFramework::LoadTriangleMesh(const TriangleMesh& mesh)
   }
 
   /* Add bend constraints */
-  const int num_triangles = mesh.GetNumTriangles();
+  const size_t num_triangles = mesh.GetNumTriangles();
   const auto& triangles = mesh.GetTriangles();
 
   for (int i = 0; i < num_triangles; ++i)

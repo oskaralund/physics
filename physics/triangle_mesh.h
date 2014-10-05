@@ -12,8 +12,8 @@ public:
   void AddTriangle(const int, const int, const int);
   void ComputeVertexNormals();
   glm::vec3 GetVertex(const int i) const { return vertices_[i]; }
-  int GetNumVertices() const { return vertices_.size(); }
-  int GetNumTriangles() const { return triangles_.size(); }
+  size_t GetNumVertices() const { return vertices_.size(); }
+  size_t GetNumTriangles() const { return triangles_.size(); }
   const std::vector<glm::vec3>& GetVertices() { return vertices_; }
   const std::vector<glm::uvec3>& GetTriangles() const { return triangles_; }
   const std::vector<glm::vec3>& GetVertexNormals() const { return vertex_normals_; }

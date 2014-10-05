@@ -19,7 +19,7 @@ public:
   glm::vec3 GetVertex(int i) const override { return vertices_[i]; }
   glm::vec3 GetVelocity(int i) const override { return velocities_[i]; }
   const std::vector<glm::vec3>& GetVertices() const override { return vertices_; }
-  int GetNumVertices() const { return num_vertices_; }
+  size_t GetNumVertices() const { return num_vertices_; }
   float GetTimestep() const { return timestep_; }
 
   void AddLengthConstraint(int i, int j, float l);
@@ -56,7 +56,7 @@ private:
   std::vector<std::array<int, 4>> c_bend_dep_vars_;
   /* END BEND CONSTRAINT */
 
-  int num_vertices_;
+  size_t num_vertices_;
   int num_solver_iterations_ = 8;
   float timestep_ = 1.0f/100.0f;
   float vertex_radius_ = 0.05f;
