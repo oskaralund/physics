@@ -18,9 +18,10 @@ private:
   void CreateVertexBuffers();
   void InitializeArrays();
 
-  static const int grid_size_ = 4;
+  static const int grid_size_ = 10;
   static const int num_triangles_ = 2*(grid_size_-1)*(grid_size_-1);
   static const int num_vertices_ = grid_size_*grid_size_;
+  int num_solver_iterations_ = 1;
   float mass_ = 0.5f;
   float timestep_ = 1e-2f;
   float inverse_vertex_mass_ = num_vertices_/mass_;

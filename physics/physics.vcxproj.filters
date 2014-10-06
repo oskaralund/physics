@@ -131,9 +131,6 @@
     <ClCompile Include="rod_vis.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pbd_framework.cu">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="distance_lineseg_lineseg.inl">
@@ -145,6 +142,9 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="pbd_kernels.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="pbd_framework.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
   </ItemGroup>

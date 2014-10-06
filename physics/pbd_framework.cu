@@ -93,12 +93,22 @@ void PBDFramework::Move()
   cudaGraphicsResourceGetMappedPointer((void**) &x_,
                                        &num_bytes,
                                        vertices_cuda_);
+  for (int i = 0; i < grid_size_; ++i)
+    SetElement<<<1,1>>>(ext_f_, i, {0.0f, 0.001f, 0.0f});
+
   GuessNewPositions<<<grid_size_, grid_size_>>>(x_,
                                                 v_,
                                                 ext_f_,
                                                 timestep_,
                                                 inverse_vertex_mass_,
                                                 p_);
+  for (int i = 0; i < num_solver_iterations_; ++i)
+  {
+    ProjectLengthConstraints<<<grid_size_-1, grid_size_>>>(p_);
+    cudaThreadSynchronize();
+  }
+
+
   CopyPositions<<<grid_size_, grid_size_>>>(x_, p_);
   SetZero<<<grid_size_, grid_size_>>>(ext_f_);
 

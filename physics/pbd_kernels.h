@@ -1,3 +1,8 @@
+#ifndef PBD_KERNELS_H_
+#define PBD_KERNELS_H_
+
+#include <glm/glm.hpp>
+
 /*
 The kernels correspond to steps in the PBD algorithm
 as described in Müller et al. (2006). Parameter names
@@ -52,8 +57,9 @@ __global__ void SetZero(glm::vec3* array);
 __global__ void CopyPositions(glm::vec3* x,
                               glm::vec3* p);
 
-/* Convert matrix indices to a vector index (assuming row major order) */
-__device__ int ToVectorIndex(int i, int j, int ld)
-{
-  return i*ld + j;
-}
+/* Given positions p_1, p_2, ..., enforces the constraint
+** |p_i - p_j| - d = 0
+*/
+__device__ void ProjectLengthConstraint(glm::vec3* p, int i, int j, float d);
+
+#endif
