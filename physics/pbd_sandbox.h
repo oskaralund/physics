@@ -40,7 +40,8 @@ private:
   double prev_y_ = 0.0;
   FPSCamera camera_;
   GridVis grid_vis_{1000, 1.0f, glm::vec3{0.0f, -1.0f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f}};
-  std::unique_ptr<VertexManipulator> vertex_manipulator_;
+  PBDFramework cloth_;
+  GLuint cloth_shader_;
 
   GLuint matrix_buffer_;
 };

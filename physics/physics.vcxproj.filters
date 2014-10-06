@@ -81,6 +81,9 @@
     <ClInclude Include="rod_vis.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="pbd_kernels.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="window.cpp">
@@ -102,9 +105,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="oskgl.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pbd_framework.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="pbd_sandbox.cpp">
@@ -131,6 +131,9 @@
     <ClCompile Include="rod_vis.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="pbd_framework.cu">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="distance_lineseg_lineseg.inl">
@@ -139,5 +142,10 @@
     <None Include="distance_point_ray.inl">
       <Filter>Header Files</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="pbd_kernels.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

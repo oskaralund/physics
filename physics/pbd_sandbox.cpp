@@ -35,7 +35,6 @@ void PBDSandbox::HandleMouseButton(int button, int action, int mods)
   case GLFW_RELEASE:
     break;
   }
-
 }
 
 void PBDSandbox::HandleKey(int key, int scancode, int action, int mods)
@@ -115,11 +114,18 @@ void PBDSandbox::DrawScene()
 {
   UpdateViewMatrix();
   grid_vis_.Draw();
+  cloth_.Draw();
 }
 
 void PBDSandbox::UpdateDynamics(double dt)
 {
   MoveCamera(static_cast<float>(dt));
+  time_accumulator_ += static_cast<float>(dt);
+  while (time_accumulator_ > cloth_.GetTimestep())
+  {
+    cloth_.Move();
+    time_accumulator_ -= cloth_.GetTimestep();
+  }
 }
 
 void PBDSandbox::CreateMatrixBuffer()
