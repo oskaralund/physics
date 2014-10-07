@@ -6,6 +6,8 @@
 #include <iostream>
 #include <memory>
 
+#define RODTEST
+
 int main()
 {
   std::cout << "1. Rod sandbox" << std::endl;
@@ -14,7 +16,11 @@ int main()
 
   std::unique_ptr<Window> window = nullptr;
 
+#ifdef RODTEST
+  switch ('1')
+#else
   switch (getchar())
+#endif
   {
   case '1':
     window = std::make_unique<RodSandbox>();

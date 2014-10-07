@@ -48,6 +48,7 @@ private:
 
   float GetTwist(int i) const;
   float GetStretch(int i) const;
+  float GetRestStretch(int i) const;
   float GetTwistEnergyAngleDerivative(int i) const;
   float GetBendEnergyAngleDerivative(int i) const;
   float GetStretchStiffness(int i) const;
@@ -56,8 +57,6 @@ private:
   float GetEdgeCrossSectionArea(int i) const;
   float GetVertexCrossSectionArea(int i) const;
   float GetCrossSectionalInertia(int i) const;
-
-  bool viscous_ = true;
 
   glm::vec2 GetCurvature(int i) const;
   glm::vec2 GetRestCurvature(int i) const;
@@ -73,6 +72,8 @@ private:
 
   glm::mat2x3 GetCurvatureVertexJacobian(int i, int j) const;
   glm::mat2x3 GetCurvatureEdgeJacobian(int i, int j) const;
+
+  bool viscous_ = true;
 
   int num_edges_;
   int num_vertices_ = num_edges_+1;

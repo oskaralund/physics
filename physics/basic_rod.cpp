@@ -423,24 +423,9 @@ vec3 BasicRod::GetTwistEdgeGradient(const int i, const int j) const
 
 vec3 BasicRod::GetStretchEnergyVertexGradient(const int i) const
 {
-  if (i > 0 && i < num_edges_)
-  {
-    return
-      GetStretchStiffness(i-1)*GetStretchVertexGradient(i-1, i)*(GetStretch(i-1) - rest_stretch_[i-1])*edge_length_ +
-      GetStretchStiffness(i)*GetStretchVertexGradient(i, i)*(GetStretch(i) - rest_stretch_[i])*edge_length_;
-  }
-  else if (i == 0)
-  {
-    return
-      GetStretchStiffness(i)*GetStretchVertexGradient(i, i)*(GetStretch(i) - rest_stretch_[i])*edge_length_;
-  }
-  else if (i == num_edges_)
-  {
-    return
-      GetStretchStiffness(i-1)*GetStretchVertexGradient(i-1, i)*(GetStretch(i-1) - rest_stretch_[i-1])*edge_length_;
-  }
-  else
-    return {0.0f, 0.0f, 0.0f};
+  return
+    GetStretchStiffness(i-1)*GetStretchVertexGradient(i-1, i)*(GetStretch(i-1) - GetRestStretch(i-1))*edge_length_ +
+    GetStretchStiffness(i)*GetStretchVertexGradient(i, i)*(GetStretch(i) - GetRestStretch(i))*edge_length_;
 }
 
 vec3 BasicRod::GetStretchVertexGradient(const int i, const int j) const
@@ -524,8 +509,19 @@ vec2 BasicRod::GetRestCurvature(const int i) const
     return vec2{0.0f};
 }
 
+float BasicRod::GetRestStretch(const int i) const
+{
+  if (i >= 0 && i < num_edges_)
+    return rest_stretch_[i];
+  else
+    return 0.0f;
+}
+
 float BasicRod::GetStretchStiffness(const int i) const
 {
+  if (i < 0 || i >= num_edges_)
+    return 0.0f;
+
   if (viscous_)
     return 3.0f*viscosity_*GetEdgeCrossSectionArea(i)/timestep_;
   else
