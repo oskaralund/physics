@@ -34,36 +34,36 @@ BasicRod::BasicRod(const float rod_length,
                    const int num_edges,
                    const float radius,
                    const float density)
-  : kRodLength(rod_length)
-  , kNumEdges(num_edges)
-  , kRadius(radius)
-  , kDensity(density)
-  , kVertexMass(kRadius*kRadius*pi<float>()*kRodLength*kDensity/kNumVertices)
+  : rod_length_(rod_length)
+  , num_edges_(num_edges)
+  , radius_(radius)
+  , density_(density)
+  , vertex_mass_(radius_*radius_*pi<float>()*rod_length_*density_/num_vertices_)
 
-  , rest_curvatures_(kNumVertices)
+  , rest_curvatures_(num_vertices_)
 
-  , vertices_(kNumVertices)
-  , prev_vertices_(kNumVertices)
-  , velocities_(kNumVertices)
-  , edges_(kNumEdges)
-  , prev_edges_(kNumEdges)
-  , binorms_(kNumVertices)
-  , external_forces_(kNumVertices)
-  , internal_forces_(kNumVertices)
+  , vertices_(num_vertices_)
+  , prev_vertices_(num_vertices_)
+  , velocities_(num_vertices_)
+  , edges_(num_edges_)
+  , prev_edges_(num_edges_)
+  , binorms_(num_vertices_)
+  , external_forces_(num_vertices_)
+  , internal_forces_(num_vertices_)
 
-  , reference_frames_(kNumEdges)
-  , material_frames_(kNumEdges)
+  , reference_frames_(num_edges_)
+  , material_frames_(num_edges_)
 
-  , constraints_(kNumEdges)
-  , constr_diagonal_(kNumEdges)
-  , constr_off_diagonal_(kNumEdges-1)
-  , reference_twist_(kNumVertices, 0)
-  , material_frame_angles_(kNumEdges, 0)
-  , angle_velocities_(kNumEdges, 0)
-  , energy_angle_gradient_(kNumEdges)
-  , energy_angle_hessian_diag_(kNumEdges)
-  , energy_angle_hessian_off_diag_(kNumEdges-1)
-  , rest_stretch_(kNumEdges, 0)
+  , constraints_(num_edges_)
+  , constr_diagonal_(num_edges_)
+  , constr_off_diagonal_(num_edges_-1)
+  , reference_twist_(num_vertices_, 0)
+  , material_frame_angles_(num_edges_, 0)
+  , angle_velocities_(num_edges_, 0)
+  , energy_angle_gradient_(num_edges_)
+  , energy_angle_hessian_diag_(num_edges_)
+  , energy_angle_hessian_off_diag_(num_edges_-1)
+  , rest_stretch_(num_edges_, 0)
 {
   Init();
 }
@@ -79,26 +79,20 @@ void BasicRod::Move()
   ResetExternalForces();
 
   if (viscous_)
-  {
-    for (int i = 0; i < kNumEdges; ++i)
-    {
-      rest_curvatures_[i] = GetCurvature(i);
-      rest_stretch_[i] = GetStretch(i);
-    }
-  }
+    SetCurrentShapeToRestShape();
 }
 
 void BasicRod::IntegrateForces()
 {
-  for (int i = 0; i < kNumVertices; ++i)
+  for (int i = 0; i < num_vertices_; ++i)
   {
     velocities_[i] +=
-      timestep_*kVertexMassInv*
+      timestep_*vertex_mass_inv_*
       (external_forces_[i] + internal_forces_[i] - damping_*velocities_[i]) +
       timestep_*gravity_;
     vertices_[i] += timestep_*velocities_[i];
   }
-  for (int i = 0; i < kNumEdges; ++i)
+  for (int i = 0; i < num_edges_; ++i)
   {
     angle_velocities_[i] -= timestep_*
       (GetTwistEnergyAngleDerivative(i) + GetBendEnergyAngleDerivative(i))/GetCrossSectionalInertia(i) +
@@ -109,7 +103,7 @@ void BasicRod::IntegrateForces()
 
 void BasicRod::ComputeEdges()
 {
-  for (int i = 0; i < kNumEdges; ++i)
+  for (int i = 0; i < num_edges_; ++i)
   {
     edges_[i] = vertices_[i+1] - vertices_[i];
   }
@@ -126,22 +120,22 @@ void BasicRod::EnforceLengthConstraints()
 
   auto minmax = std::minmax_element(constraints_.begin(), constraints_.end());
 
-  while (*minmax.second-*minmax.first > 0.0001f*kRodLength)
+  while (*minmax.second-*minmax.first > 0.0001f*rod_length_)
   {
     LAPACKE_sptsv(LAPACK_COL_MAJOR,
-                  kNumEdges,
+                  num_edges_,
                   1,
                   &constr_diagonal_[0],
                   &constr_off_diagonal_[0],
                   &constraints_[0],
-                  kNumEdges);
+                  num_edges_);
 
     std::vector<float>& lambda = constraints_;
 
-    for (int i = 0; i < kNumEdges; ++i)
+    for (int i = 0; i < num_edges_; ++i)
     {
-      vertices_[i] -= -kVertexMassInv*kEdgeLengthInv*lambda[i]*edges_[i];
-      vertices_[i+1] -= kVertexMassInv*kEdgeLengthInv*lambda[i]*edges_[i];
+      vertices_[i] -= -vertex_mass_inv_*edge_length_inv_*lambda[i]*edges_[i];
+      vertices_[i+1] -= vertex_mass_inv_*edge_length_inv_*lambda[i]*edges_[i];
     }
     ComputeEdges();
     ComputeConstraints();
@@ -153,28 +147,28 @@ void BasicRod::EnforceLengthConstraints()
 
 void BasicRod::ComputeConstraints()
 {
-  for (int i = 0; i < kNumEdges; ++i)
+  for (int i = 0; i < num_edges_; ++i)
   {
-    constraints_[i] = 0.5f*kEdgeLengthInv*dot(edges_[i], edges_[i]) - 0.5f*kEdgeLength;
+    constraints_[i] = 0.5f*edge_length_inv_*dot(edges_[i], edges_[i]) - 0.5f*edge_length_;
   }
 }
 
 void BasicRod::ComputeConstraintMatrix()
 {
-  for (int i = 0; i < kNumEdges; ++i)
+  for (int i = 0; i < num_edges_; ++i)
   {
-    constr_diagonal_[i] = 2*kVertexMassInv*dot(edges_[i], edges_[i])*kEdgeLengthInvSquared;
+    constr_diagonal_[i] = 2*vertex_mass_inv_*dot(edges_[i], edges_[i])*edge_length_inv_squared_;
   }
 
-  for (int i = 0; i < kNumEdges-1; ++i)
+  for (int i = 0; i < num_edges_-1; ++i)
   {
-    constr_off_diagonal_[i] = -kVertexMassInv*dot(edges_[i], edges_[i+1])*kEdgeLengthInvSquared;
+    constr_off_diagonal_[i] = -vertex_mass_inv_*dot(edges_[i], edges_[i+1])*edge_length_inv_squared_;
   }
 }
 
 void BasicRod::UpdateVelocities()
 {
-  for (int i = 0; i < kNumVertices; ++i)
+  for (int i = 0; i < num_vertices_; ++i)
   {
     velocities_[i] += (vertices_[i] - prev_vertices_[i])/timestep_;
   }
@@ -182,9 +176,9 @@ void BasicRod::UpdateVelocities()
 
 void BasicRod::Init()
 {
-  for (int i = 0; i < kNumVertices; ++i)
+  for (int i = 0; i < num_vertices_; ++i)
   {
-    vertices_[i] = vec3{0.0f, 0.0f, i*kEdgeLength};
+    vertices_[i] = vec3{0.0f, 0.0f, i*edge_length_};
     velocities_[i] = vec3{0.0f,0.0f,0.0f};
     external_forces_[i] = vec3{0.0f, 0.0f, 0.0f};
     internal_forces_[i] = vec3{0.0f, 0.0f, 0.0f};
@@ -195,7 +189,7 @@ void BasicRod::Init()
   ComputeEdges();
   prev_edges_ = edges_;
 
-  for (int i = 0; i < kNumEdges; ++i)
+  for (int i = 0; i < num_edges_; ++i)
   {
     //rest_curvatures_[i] = vec2{0.1f, 0.0f};
     reference_frames_[i].first = vec3{1.0f, 0.0f, 0.0f};
@@ -206,12 +200,12 @@ void BasicRod::Init()
 void BasicRod::UpdateReferenceFrames()
 {
 
-  for (int i = 0; i < kNumEdges; ++i)
+  for (int i = 0; i < num_edges_; ++i)
   {
     vec3 prev_tangent = normalize(prev_edges_[i]);
     vec3 new_tangent = normalize(edges_[i]);
     float angle = GetAngle(prev_tangent, new_tangent);
-    if (angle > kAngleTolerance)
+    if (angle > angle_tolerance_)
     {
       vec3 rotation_axis = normalize(cross(prev_tangent, new_tangent));
       reference_frames_[i].first =
@@ -229,14 +223,14 @@ void BasicRod::UpdateReferenceFrames()
 
 void BasicRod::ComputeReferenceTwist()
 {
-  for (int i = 1; i < kNumEdges; ++i)
+  for (int i = 1; i < num_edges_; ++i)
   {
     vec3 prev_tangent = normalize(edges_[i-1]);
     vec3 next_tangent = normalize(edges_[i]);
     vec3 d1 = reference_frames_[i-1].first;
     float angle = GetAngle(prev_tangent, next_tangent);
 
-    if (angle > kAngleTolerance)
+    if (angle > angle_tolerance_)
     {
       vec3 rotation_axis = normalize(cross(prev_tangent, next_tangent));
       d1 = rotate(d1, angle, rotation_axis);
@@ -254,7 +248,7 @@ void BasicRod::ComputeReferenceTwist()
 
 void BasicRod::ComputeMaterialFrames()
 {
-  for (int i = 0; i < kNumEdges; ++i)
+  for (int i = 0; i < num_edges_; ++i)
   {
     float sin_theta = sinf(material_frame_angles_[i]);
     float cos_theta = cosf(material_frame_angles_[i]);
@@ -305,7 +299,7 @@ vec2 BasicRod::GetCurvatureAngleJacobianJacobian(const int i, const int j) const
 
 void BasicRod::ComputeBinorms()
 {
-  for (int i = 1; i < kNumEdges; ++i)
+  for (int i = 1; i < num_edges_; ++i)
   {
     float divisor =
       length(edges_[i-1])*length(edges_[i]) + dot(edges_[i-1], edges_[i]);
@@ -319,10 +313,19 @@ void BasicRod::ComputeBinorms()
 
 void BasicRod::ComputeInternalForces()
 {
-  for (int i = 0; i < kNumVertices; ++i)
+  for (int i = 0; i < num_vertices_; ++i)
   {
     internal_forces_[i] =
       -(GetBendEnergyVertexGradient(i) + GetTwistEnergyVertexGradient(i) + GetStretchEnergyVertexGradient(i));
+  }
+}
+
+void BasicRod::SetCurrentShapeToRestShape()
+{
+  for (int i = 0; i < num_edges_; ++i)
+  {
+    rest_curvatures_[i] = GetCurvature(i);
+    rest_stretch_[i] = GetStretch(i);
   }
 }
 
@@ -334,7 +337,7 @@ vec3 BasicRod::GetBendEnergyVertexGradient(const int i) const
     GetBendStiffness(i)*GetCurvatureVertexJacobian(i, i)*(GetCurvature(i) - GetRestCurvature(i)) +
     GetBendStiffness(i+1)*GetCurvatureVertexJacobian(i+1, i)*(GetCurvature(i+1) - GetRestCurvature(i+1));
 
-  return kEdgeLengthInv*gradient;
+  return edge_length_inv_*gradient;
 }
 
 /* Compute the TRANSPOSED jacobian of curvature i w.r.t. a vertex. */
@@ -348,7 +351,7 @@ mat2x3 BasicRod::GetCurvatureEdgeJacobian(const int i, const int j) const
 {
   mat2x3 jacobian;
 
-  if (i < 1 || i > kNumEdges-1)
+  if (i < 1 || i > num_edges_-1)
     return jacobian;
 
   vec3 prev_tangent = normalize(edges_[i-1]);
@@ -395,7 +398,7 @@ vec3 BasicRod::GetTwistEnergyVertexGradient(const int i) const
              GetTwistStiffness(i)*GetTwist(i)*GetTwistVertexGradient(i, i) +
              GetTwistStiffness(i+1)*GetTwist(i+1)*GetTwistVertexGradient(i+1, i);
 
-  return kEdgeLengthInv*gradient;
+  return edge_length_inv_*gradient;
 }
 
 vec3 BasicRod::GetTwistVertexGradient(const int i, const int j) const
@@ -407,7 +410,7 @@ vec3 BasicRod::GetTwistEdgeGradient(const int i, const int j) const
 {
   vec3 gradient{0.0f};
 
-  if (i < 1 || i > kNumEdges-1)
+  if (i < 1 || i > num_edges_-1)
     return gradient;
 
   if (j == i-1)
@@ -420,9 +423,24 @@ vec3 BasicRod::GetTwistEdgeGradient(const int i, const int j) const
 
 vec3 BasicRod::GetStretchEnergyVertexGradient(const int i) const
 {
-  return
-    GetStretchStiffness(i-1)*GetStretchVertexGradient(i-1, i)*(GetStretch(i-1) - rest_stretch_[i-1])*kEdgeLength +
-    GetStretchStiffness(i)*GetStretchVertexGradient(i, i)*(GetStretch(i) - rest_stretch_[i])*kEdgeLength;
+  if (i > 0 && i < num_edges_)
+  {
+    return
+      GetStretchStiffness(i-1)*GetStretchVertexGradient(i-1, i)*(GetStretch(i-1) - rest_stretch_[i-1])*edge_length_ +
+      GetStretchStiffness(i)*GetStretchVertexGradient(i, i)*(GetStretch(i) - rest_stretch_[i])*edge_length_;
+  }
+  else if (i == 0)
+  {
+    return
+      GetStretchStiffness(i)*GetStretchVertexGradient(i, i)*(GetStretch(i) - rest_stretch_[i])*edge_length_;
+  }
+  else if (i == num_edges_)
+  {
+    return
+      GetStretchStiffness(i-1)*GetStretchVertexGradient(i-1, i)*(GetStretch(i-1) - rest_stretch_[i-1])*edge_length_;
+  }
+  else
+    return {0.0f, 0.0f, 0.0f};
 }
 
 vec3 BasicRod::GetStretchVertexGradient(const int i, const int j) const
@@ -437,25 +455,25 @@ vec3 BasicRod::GetStretchVertexGradient(const int i, const int j) const
 
 vec3 BasicRod::GetStretchEdgeGradient(const int i) const
 {
-  if (i < 0 || i > kNumEdges-1)
+  if (i < 0 || i > num_edges_-1)
     return vec3{0.0f};
 
-  return kEdgeLengthInv*normalize(edges_[i]);
+  return edge_length_inv_*normalize(edges_[i]);
 }
 
 float BasicRod::GetStretch(const int i) const
 {
-  if (i < 0 || i > kNumEdges-1)
+  if (i < 0 || i > num_edges_-1)
     return 0.0f;
 
-  return length(edges_[i])*kEdgeLengthInv - 1.0f;
+  return length(edges_[i])*edge_length_inv_ - 1.0f;
 }
 
 float BasicRod::GetTwistEnergyAngleDerivative(const int i) const
 {
   float derivative =
     GetTwistStiffness(i)*GetTwist(i) - GetTwistStiffness(i+1)*GetTwist(i+1);
-  return kEdgeLengthInv*derivative;
+  return edge_length_inv_*derivative;
 }
 
 float BasicRod::GetBendEnergyAngleDerivative(const int i) const
@@ -467,12 +485,12 @@ float BasicRod::GetBendEnergyAngleDerivative(const int i) const
   derivative +=
     GetBendStiffness(i+1)*dot(curv, GetCurvatureAngleJacobian(i+1, i));
 
-  return kEdgeLengthInv*derivative;
+  return edge_length_inv_*derivative;
 }
 
 float BasicRod::GetTwist(const int i) const
 {
-  if (i > 0 && i < kNumEdges)
+  if (i > 0 && i < num_edges_)
   {
     return
       material_frame_angles_[i] -
@@ -485,7 +503,7 @@ float BasicRod::GetTwist(const int i) const
 
 vec2 BasicRod::GetCurvature(const int i) const
 {
-  if (i > 0 && i < kNumEdges)
+  if (i > 0 && i < num_edges_)
   {
     vec2 curvature;
     curvature.x =
@@ -500,7 +518,7 @@ vec2 BasicRod::GetCurvature(const int i) const
 
 vec2 BasicRod::GetRestCurvature(const int i) const
 {
-  if (i > 0 && i < kNumEdges)
+  if (i > 0 && i < num_edges_)
     return rest_curvatures_[i];
   else
     return vec2{0.0f};
@@ -534,8 +552,8 @@ float BasicRod::GetTwistStiffness(const int i) const
 
 float BasicRod::GetEdgeCrossSectionArea(const int i) const
 {
-  float length_ratio = kEdgeLength/length(edges_[i]);
-  return length_ratio*pi<float>()*kRadius*kRadius;
+  float length_ratio = edge_length_/length(edges_[i]);
+  return length_ratio*pi<float>()*radius_*radius_;
 }
 
 float BasicRod::GetVertexCrossSectionArea(const int i) const
@@ -546,20 +564,20 @@ float BasicRod::GetVertexCrossSectionArea(const int i) const
 
 float BasicRod::GetEdgeRadius(const int i) const
 {
-  if (i < 0 || i > kNumEdges-1)
+  if (i < 0 || i > num_edges_-1)
     return 0.0f;
   else
-    return kRadius*glm::sqrt(kEdgeLength/length(edges_[i]));
+    return radius_*glm::sqrt(edge_length_/length(edges_[i]));
 }
 
 float BasicRod::GetVertexRadius(const int i) const
 {
-  if (i > 0 && i < kNumEdges)
+  if (i > 0 && i < num_edges_)
     return 0.5f*(GetEdgeRadius(i-1) + GetEdgeRadius(i));
   else if (i == 0)
     return GetEdgeRadius(0);
-  else if (i == kNumEdges)
-    return GetEdgeRadius(kNumEdges-1);
+  else if (i == num_edges_)
+    return GetEdgeRadius(num_edges_-1);
   else
     return 0.0f;
 }
@@ -567,7 +585,7 @@ float BasicRod::GetVertexRadius(const int i) const
 float BasicRod::GetCrossSectionalInertia(const int i) const
 {
   float radius = GetEdgeRadius(i);
-  return kDensity*pi<float>()*kRadius*kRadius*kEdgeLength*radius*radius;
+  return density_*pi<float>()*radius_*radius_*edge_length_*radius*radius;
 }
 
 void BasicRod::Displace(const int i, const glm::vec3& d)
@@ -578,7 +596,7 @@ void BasicRod::Displace(const int i, const glm::vec3& d)
 
 void BasicRod::ResetExternalForces()
 {
-  for (int i = 0; i < kNumVertices; ++i)
+  for (int i = 0; i < num_vertices_; ++i)
     external_forces_[i] = vec3{0.0f};
 }
 

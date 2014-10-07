@@ -1,4 +1,4 @@
-#include "rod_sandbox.h"
+#include "fluid_sandbox.h"
 #include "oskgl.h"
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/constants.hpp>
@@ -8,40 +8,24 @@
 
 using namespace glm;
 
-RodSandbox::RodSandbox()
+FluidSandbox::FluidSandbox()
 {
   CreateMatrixBuffer();
   camera_.SetPosition(vec3{0.0f, 0.0f, 1.0f});
-  rod_vis_.DrawMaterialFrames(true);
-  vertex_manipulator_.SetPickingForce(5.0f);
 }
 
-void RodSandbox::UpdateDynamics(double dt)
+void FluidSandbox::UpdateDynamics(double dt)
 {
   MoveCamera(static_cast<float>(dt));
-  time_accumulator_ += static_cast<float>(dt);
-  while (time_accumulator_ > rod_.GetTimestep())
-  {
-    rod_.Move();
-    for (int i = 0; i < rod_.GetNumVertices(); ++i)
-    {
-      if (rod_.GetVertex(i)[1] < -1+rod_.GetEdgeRadius(min(i, rod_.GetNumEdges()-1)))
-        rod_.Displace(i, vec3{0.0f, -(rod_.GetVertex(i)[1]+1-rod_.GetEdgeRadius(min(i, rod_.GetNumEdges()-1))), 0.0f});
-    }
-
-    vertex_manipulator_.Update();
-    time_accumulator_ -= rod_.GetTimestep();
-  }
 }
 
-void RodSandbox::DrawScene()
+void FluidSandbox::DrawScene()
 {
   UpdateViewMatrix();
-  rod_vis_.Draw();
   grid_vis_.Draw();
 }
 
-void RodSandbox::HandleMouseMove(double x, double y)
+void FluidSandbox::HandleMouseMove(double x, double y)
 {
   AbsoluteToNormalizedCoordinates(&x, &y);
   float dx = static_cast<float>(x - prev_x_);
@@ -55,28 +39,13 @@ void RodSandbox::HandleMouseMove(double x, double y)
   CenterCursor();
   prev_x_ = 0.0f;
   prev_y_ = 0.0f;
-
-  vertex_manipulator_
-    .MouseMoveCallback(x, y);
 }
 
-void RodSandbox::HandleMouseButton(int button, int action, int mods)
+void FluidSandbox::HandleMouseButton(int button, int action, int mods)
 {
-  double x, y;
-  GetNormalizedMouseCoordinates(&x, &y);
-  switch (action)
-  {
-  case GLFW_PRESS:
-    vertex_manipulator_.MouseDownCallback(x, y);
-    break;
-  case GLFW_RELEASE:
-    vertex_manipulator_.MouseUpCallback(x, y);
-    break;
-  }
-
 }
 
-void RodSandbox::HandleKey(int key, int scancode, int action, int mods)
+void FluidSandbox::HandleKey(int key, int scancode, int action, int mods)
 {
   switch (action)
   {
@@ -133,7 +102,7 @@ void RodSandbox::HandleKey(int key, int scancode, int action, int mods)
   }
 }
 
-void RodSandbox::Reshape(int width, int height)
+void FluidSandbox::Reshape(int width, int height)
 {
   glViewport(0, 0, width, height);
   float aspect_ratio = static_cast<float>(width)/height;
@@ -141,7 +110,7 @@ void RodSandbox::Reshape(int width, int height)
   UpdateProjectionMatrix();
 }
 
-void RodSandbox::CreateMatrixBuffer()
+void FluidSandbox::CreateMatrixBuffer()
 {
   mat4 projection = camera_.GetProjectionMatrix();
   mat4 view = camera_.GetViewMatrix();
@@ -154,7 +123,7 @@ void RodSandbox::CreateMatrixBuffer()
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, matrix_buffer_);
 }
 
-void RodSandbox::UpdateProjectionMatrix()
+void FluidSandbox::UpdateProjectionMatrix()
 {
   mat4 projection = camera_.GetProjectionMatrix();
   glBindBuffer(GL_UNIFORM_BUFFER, matrix_buffer_);
@@ -162,7 +131,7 @@ void RodSandbox::UpdateProjectionMatrix()
   glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
-void RodSandbox::UpdateViewMatrix()
+void FluidSandbox::UpdateViewMatrix()
 {
   mat4 view = camera_.GetViewMatrix();
   glBindBuffer(GL_UNIFORM_BUFFER, matrix_buffer_);
@@ -170,7 +139,7 @@ void RodSandbox::UpdateViewMatrix()
   glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
-void RodSandbox::MoveCamera(const float dt)
+void FluidSandbox::MoveCamera(const float dt)
 {
   if (move_forward_)
     camera_.MoveForward(dt*camera_sensitivity_);

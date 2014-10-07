@@ -125,6 +125,7 @@
     <ClCompile Include="basic_rod.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="cylinder_vis.cpp" />
+    <ClCompile Include="fluid_sandbox.cpp" />
     <ClCompile Include="fps_camera.cpp" />
     <ClCompile Include="frame_vis.cpp" />
     <ClCompile Include="grid_vis.cpp" />
@@ -133,7 +134,7 @@
     <ClCompile Include="pbd_sandbox.cpp" />
     <ClCompile Include="rod_sandbox.cpp" />
     <ClCompile Include="rod_vis.cpp" />
-    <ClCompile Include="sandbox.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="triangle_mesh.cpp" />
     <ClCompile Include="vertex_manipulator.cpp" />
     <ClCompile Include="vertex_selector.cpp" />
@@ -147,12 +148,14 @@
     <ClInclude Include="distance_lineseg_lineseg.h" />
     <ClInclude Include="distance_point_ray.h" />
     <ClInclude Include="dynamical_system_interface.h" />
+    <ClInclude Include="fluid_sandbox.h" />
     <ClInclude Include="fps_camera.h" />
     <ClInclude Include="frame_vis.h" />
     <ClInclude Include="grid_vis.h" />
     <ClInclude Include="oskgl.h" />
     <ClInclude Include="pbd_framework.h" />
     <ClInclude Include="pbd_sandbox.h" />
+    <ClInclude Include="pb_fluid.h" />
     <ClInclude Include="rod_interface.h" />
     <ClInclude Include="rod_sandbox.h" />
     <ClInclude Include="rod_vis.h" />

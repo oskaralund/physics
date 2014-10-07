@@ -18,8 +18,8 @@ public:
   void  AddForce(int i, const glm::vec3& f) override { external_forces_[i] += f; }
   void  SetTimestep(float h) override { timestep_ = h; }
   void  Displace(int i, const glm::vec3& d) override;
-  int   GetNumVertices() const override { return kNumVertices; }
-  int   GetNumEdges() const override { return kNumEdges; }
+  int   GetNumVertices() const override { return num_vertices_; }
+  int   GetNumEdges() const override { return num_edges_; }
   float GetTimestep() const override { return timestep_; }
   float GetVertexRadius(int i) const override;
   float GetEdgeRadius(int i) const override;
@@ -44,6 +44,7 @@ private:
   void UpdateVelocities();
   void UpdateReferenceFrames();
   void ResetExternalForces();
+  void SetCurrentShapeToRestShape();
 
   float GetTwist(int i) const;
   float GetStretch(int i) const;
@@ -73,21 +74,21 @@ private:
   glm::mat2x3 GetCurvatureVertexJacobian(int i, int j) const;
   glm::mat2x3 GetCurvatureEdgeJacobian(int i, int j) const;
 
-  const int kNumEdges;
-  const int kNumVertices = kNumEdges+1;
+  int num_edges_;
+  int num_vertices_ = num_edges_+1;
 
-  const float kRodLength;
-  const float kEdgeLength = kRodLength/kNumEdges;
-  const float kEdgeLengthSquared = kEdgeLength*kEdgeLength;
-  const float kEdgeLengthInv = 1/kEdgeLength;
-  const float kEdgeLengthInvSquared = 1/(kEdgeLength*kEdgeLength);
-  const float kRadius;
-  const float kDensity;
-  const float kVertexMass;
-  const float kVertexMassInv = 1/kVertexMass;
-  const float kAngleTolerance = 2.0f*3.1415f/1000.0f;
+  float rod_length_;
+  float edge_length_ = rod_length_/num_edges_;
+  float edge_length_squared_ = edge_length_*edge_length_;
+  float edge_length_inv_ = 1/edge_length_;
+  float edge_length_inv_squared_ = 1/(edge_length_*edge_length_);
+  float radius_;
+  float density_;
+  float vertex_mass_;
+  float vertex_mass_inv_ = 1/vertex_mass_;
+  float angle_tolerance_ = 2.0f*3.1415f/1000.0f;
   float timestep_ = 1e-3f;
-  float young_modulus_ = 1e3f;
+  float young_modulus_ = 1e4f;
   float shear_modulus_ = 1e3f;
   float damping_ = 0.005f;
   float viscosity_ = 5.5f;
