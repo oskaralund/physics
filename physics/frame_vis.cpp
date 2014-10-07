@@ -76,7 +76,8 @@ void FrameVis::ConstructMesh()
 
 void FrameVis::CompileShader()
 {
-  shader_ = oskgl::CompileShaderProgram("basic_vshader.vsh", "basic_fshader.fsh");
+  shader_ = oskgl::CompileShaderProgram("shaders/frame.vsh",
+                                        "shaders/frame.fsh");
 }
 
 void FrameVis::SetOrigo(const vec3 origo)

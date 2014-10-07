@@ -30,7 +30,8 @@ void CylinderVis::Draw()
 
 void CylinderVis::CompileShader()
 {
-  shader_ = oskgl::CompileShaderProgram("cylinder.vsh", "cylinder.fsh");
+  shader_ = oskgl::CompileShaderProgram("shaders/cylinder.vsh",
+                                        "shaders/cylinder.fsh");
 }
 
 void CylinderVis::ComputeModelMatrix()

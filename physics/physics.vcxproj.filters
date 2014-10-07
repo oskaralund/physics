@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\geometry">
+      <UniqueIdentifier>{a2ea3c4b-5696-4f33-9e5e-9e46a66f54e3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="window.h">
@@ -28,12 +31,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="camera.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="distance_lineseg_lineseg.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="distance_point_ray.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="fps_camera.h">
@@ -80,6 +77,12 @@
     </ClInclude>
     <ClInclude Include="rod_vis.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="distance_lineseg_lineseg.h">
+      <Filter>Header Files\geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="distance_point_ray.h">
+      <Filter>Header Files\geometry</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -134,10 +137,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="distance_lineseg_lineseg.inl">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\geometry</Filter>
     </None>
     <None Include="distance_point_ray.inl">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\geometry</Filter>
     </None>
   </ItemGroup>
 </Project>

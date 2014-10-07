@@ -37,7 +37,8 @@ GridVis::GridVis(const int grid_size,
 
 void GridVis::CompileShader()
 {
-  shader_ = oskgl::CompileShaderProgram("grid_vis.vsh", "grid_vis.fsh");
+  shader_ = oskgl::CompileShaderProgram("shaders/grid_vis.vsh",
+                                        "shaders/grid_vis.fsh");
 }
 
 void GridVis::Draw()

@@ -1,7 +1,7 @@
 #include "vertex_manipulator.h"
 #include "vertex_selector.h"
 #include "oskgl.h"
-#include "distance_point_ray.h"
+#include "geometry/distance_point_ray.h"
 #include <iostream>
 
 using namespace glm;

@@ -171,7 +171,8 @@ PBDSandbox::PBDSandbox()
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
 
-  shader_ = oskgl::CompileShaderProgram("basic_vshader.vsh", "basic_fshader.fsh");
+  shader_ = oskgl::CompileShaderProgram("shaders/basic_vshader.vsh",
+                                        "shaders/basic_fshader.fsh");
   glUseProgram(shader_);
   glUniformMatrix4fv(0, 1, GL_FALSE, value_ptr(mat4{1.0f}));
 }
