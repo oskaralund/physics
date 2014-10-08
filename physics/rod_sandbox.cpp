@@ -11,7 +11,7 @@ using namespace glm;
 RodSandbox::RodSandbox()
 {
   CreateMatrixBuffer();
-  camera_.SetPosition(vec3{0.0f, 0.0f, 1.0f});
+  camera_.SetPosition(vec3{0.0f, 0.0f, 0.2f});
   rod_vis_.DrawMaterialFrames(true);
   vertex_manipulator_.SetPickingForce(5.0f);
 }
@@ -25,8 +25,8 @@ void RodSandbox::UpdateDynamics(double dt)
     rod_.Move();
     for (int i = 0; i < rod_.GetNumVertices(); ++i)
     {
-      if (rod_.GetVertex(i)[1] < -1+rod_.GetEdgeRadius(min(i, rod_.GetNumEdges()-1)))
-        rod_.Displace(i, vec3{0.0f, -(rod_.GetVertex(i)[1]+1-rod_.GetEdgeRadius(min(i, rod_.GetNumEdges()-1))), 0.0f});
+      if (rod_.GetVertex(i)[1] < floor_level_+rod_.GetEdgeRadius(min(i, rod_.GetNumEdges()-1)))
+        rod_.Displace(i, vec3{0.0f, -(rod_.GetVertex(i)[1]-floor_level_-rod_.GetEdgeRadius(min(i, rod_.GetNumEdges()-1))), 0.0f});
     }
 
     vertex_manipulator_.Update();

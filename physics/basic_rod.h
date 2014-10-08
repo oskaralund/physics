@@ -88,10 +88,10 @@ private:
   float vertex_mass_;
   float vertex_mass_inv_ = 1/vertex_mass_;
   float angle_tolerance_ = 2.0f*3.1415f/1000.0f;
-  float timestep_ = 1e-3f;
+  float timestep_ = 5e-4f;
   float young_modulus_ = 1e4f;
   float shear_modulus_ = 1e3f;
-  float damping_ = 0.005f;
+  float damping_ = 0.001f;
   float viscosity_ = 5.5f;
 
   glm::vec3 gravity_{0.0f, -9.82f, 0.0f};

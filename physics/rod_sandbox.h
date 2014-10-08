@@ -39,9 +39,10 @@ private:
   double prev_x_ = 0.0;
   double prev_y_ = 0.0;
   FPSCamera camera_;
-  BasicRod rod_{1.0f, 160, 0.005f, 1000.0f};
+  BasicRod rod_{0.2f, 50, 0.0025f, 1360.0f};
   RodVis rod_vis_{&rod_};
-  GridVis grid_vis_{1000, 0.1f, glm::vec3{0.0f, -1.0f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f}};
+  float floor_level_ = -0.2f;
+  GridVis grid_vis_{1000, 0.1f, glm::vec3{0.0f, -0.2f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f}};
   VertexManipulator vertex_manipulator_{&rod_, &camera_};
 
   GLuint matrix_buffer_;
