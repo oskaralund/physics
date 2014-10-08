@@ -428,6 +428,34 @@ vec3 BasicRod::GetStretchEnergyVertexGradient(const int i) const
     GetStretchStiffness(i)*GetStretchVertexGradient(i, i)*(GetStretch(i) - GetRestStretch(i))*edge_length_;
 }
 
+mat3 BasicRod::GetStretchEnergyVertexHessian(const int i, const int j) const
+{
+  const mat3 I{1.0f};
+  auto F = [&](const int k)
+  {
+    const float kStiffnessOverEdgeLength =
+      GetStretchStiffness(k)*GetInverseEdgeLength(k);
+    const mat3 kStretchPlusOuterProduct =
+      GetStretch(k)*I + outerProduct(GetTangent(k), GetTangent(k));
+    return -kStiffnessOverEdgeLength*kStretchPlusOuterProduct;
+  };
+
+  if (j == i-1)
+  {
+    return F(i-1);
+  }
+  else if (j == i+1)
+  {
+    return F(i);
+  }
+  else if (j == i)
+  {
+    return -(F(i-1) + F(i));
+  }
+  else
+    return mat3{0.0f};
+}
+
 vec3 BasicRod::GetStretchVertexGradient(const int i, const int j) const
 {
   vec3 gradient{0.0f};
@@ -544,6 +572,22 @@ float BasicRod::GetTwistStiffness(const int i) const
     return 0.5f*viscosity_*GetVertexCrossSectionArea(i)*radius*radius/timestep_;
   else
     return 0.5f*shear_modulus_*GetVertexCrossSectionArea(i)*radius*radius;
+}
+
+vec3 BasicRod::GetTangent(const int i) const
+{
+  if (i < 0 || i > num_edges_-1)
+    return {0.0f, 0.0f, 0.0f};
+  else
+    return normalize(edges_[i]);
+}
+
+float BasicRod::GetInverseEdgeLength(int i) const
+{
+  if (i < 0 || i > num_edges_-1)
+    return 0.0f;
+  else
+    return 1.0f/length(edges_[i]);
 }
 
 float BasicRod::GetEdgeCrossSectionArea(const int i) const
