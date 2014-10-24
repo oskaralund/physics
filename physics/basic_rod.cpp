@@ -11,6 +11,8 @@
 #define LAPACK_COMPLEX_STRUCTURE
 #include "lapacke.h"
 
+#define IMPLICIT
+
 using namespace glm;
 
 namespace {
@@ -28,6 +30,12 @@ namespace {
   }
 
   bool NanCheck(const float x) { return x != x; }
+
+  /* Converts a matrix index into an array index. Assumes column major order. */
+  int GetIndex(const int row, const int col, const int ld)
+  {
+    return row + ld*col;
+  }
 }
 
 BasicRod::BasicRod(const float rod_length,
@@ -54,16 +62,14 @@ BasicRod::BasicRod(const float rod_length,
   , reference_frames_(num_edges_)
   , material_frames_(num_edges_)
 
-  , constraints_(num_edges_)
-  , constr_diagonal_(num_edges_)
-  , constr_off_diagonal_(num_edges_-1)
   , reference_twist_(num_vertices_, 0)
   , material_frame_angles_(num_edges_, 0)
   , angle_velocities_(num_edges_, 0)
-  , energy_angle_gradient_(num_edges_)
-  , energy_angle_hessian_diag_(num_edges_)
-  , energy_angle_hessian_off_diag_(num_edges_-1)
   , rest_stretch_(num_edges_, 0)
+
+  , dv_(num_vertices_, {0.0f, 0.0f, 0.0f})
+  , g_(num_vertices_, {0.0f, 0.0f, 0.0f})
+  , Jg_(16*3*num_vertices_, 0.0f)
 {
   Init();
 }
@@ -74,7 +80,11 @@ void BasicRod::Move()
   ComputeBinorms();
   ComputeMaterialFrames();
   ComputeInternalForces();
+#ifdef IMPLICIT
+  IntegrateImplicit();
+#else
   IntegrateForces();
+#endif
   UpdateReferenceFrames();
   ResetExternalForces();
 
@@ -106,63 +116,6 @@ void BasicRod::ComputeEdges()
   for (int i = 0; i < num_edges_; ++i)
   {
     edges_[i] = vertices_[i+1] - vertices_[i];
-  }
-}
-
-void BasicRod::EnforceLengthConstraints()
-{
-  int count = 0;
-
-  ComputeEdges();
-  ComputeConstraints();
-  ComputeConstraintMatrix();
-  prev_vertices_ = vertices_;
-
-  auto minmax = std::minmax_element(constraints_.begin(), constraints_.end());
-
-  while (*minmax.second-*minmax.first > 0.0001f*rod_length_)
-  {
-    LAPACKE_sptsv(LAPACK_COL_MAJOR,
-                  num_edges_,
-                  1,
-                  &constr_diagonal_[0],
-                  &constr_off_diagonal_[0],
-                  &constraints_[0],
-                  num_edges_);
-
-    std::vector<float>& lambda = constraints_;
-
-    for (int i = 0; i < num_edges_; ++i)
-    {
-      vertices_[i] -= -vertex_mass_inv_*edge_length_inv_*lambda[i]*edges_[i];
-      vertices_[i+1] -= vertex_mass_inv_*edge_length_inv_*lambda[i]*edges_[i];
-    }
-    ComputeEdges();
-    ComputeConstraints();
-    ComputeConstraintMatrix();
-  }
-
-  UpdateVelocities();
-}
-
-void BasicRod::ComputeConstraints()
-{
-  for (int i = 0; i < num_edges_; ++i)
-  {
-    constraints_[i] = 0.5f*edge_length_inv_*dot(edges_[i], edges_[i]) - 0.5f*edge_length_;
-  }
-}
-
-void BasicRod::ComputeConstraintMatrix()
-{
-  for (int i = 0; i < num_edges_; ++i)
-  {
-    constr_diagonal_[i] = 2*vertex_mass_inv_*dot(edges_[i], edges_[i])*edge_length_inv_squared_;
-  }
-
-  for (int i = 0; i < num_edges_-1; ++i)
-  {
-    constr_off_diagonal_[i] = -vertex_mass_inv_*dot(edges_[i], edges_[i+1])*edge_length_inv_squared_;
   }
 }
 
@@ -315,8 +268,13 @@ void BasicRod::ComputeInternalForces()
 {
   for (int i = 0; i < num_vertices_; ++i)
   {
+#ifdef IMPLICIT
+    internal_forces_[i] =
+      -GetStretchEnergyVertexGradient(i);
+#else
     internal_forces_[i] =
       -(GetBendEnergyVertexGradient(i) + GetTwistEnergyVertexGradient(i) + GetStretchEnergyVertexGradient(i));
+#endif
   }
 }
 
@@ -648,4 +606,112 @@ mat4 BasicRod::GetMaterialFrame(const int i) const
   frame[1] = vec4{material_frames_[i].second, 0.0f};
   frame[2] = vec4{normalize(edges_[i]), 0.0f};
   return frame;
+}
+
+/* IMPLICIT INTEGRATION */
+void BasicRod::IntegrateImplicit()
+{
+  int trash_can[10000];
+  prev_vertices_ = vertices_;
+  for (int i = 0; i < num_vertices_; ++i)
+  {
+    dv_[i] = {0.0f,0.0f,0.0f};
+    vertices_[i] = prev_vertices_[i] + timestep_*(velocities_[i] + dv_[i]);
+    external_forces_[i] += vertex_mass_*gravity_
+                           -damping_*velocities_[i];
+  }
+
+  for (int k = 0; k < 5; ++k)
+  {
+    ComputeEdges();
+    ComputeInternalForces();
+    ComputeG();
+    ComputeJG();
+    int info = LAPACKE_sgbsv(LAPACK_COL_MAJOR,
+                  3*num_vertices_,
+                  5,
+                  5,
+                  1,
+                  &Jg_[0],
+                  16,
+                  trash_can,
+                  &g_[0][0],
+                  3*num_vertices_);
+    for (int i = 0; i < num_vertices_; ++i)
+    {
+      dv_[i] -= g_[i];
+      vertices_[i] = prev_vertices_[i] + timestep_*(velocities_[i] + dv_[i]);
+    }
+  }
+
+  for (int i = 0; i < num_vertices_; ++i)
+  {
+    velocities_[i] += dv_[i];
+  }
+}
+
+void BasicRod::ComputeG()
+{
+  for (int i = 0; i < num_vertices_; ++i)
+  {
+    g_[i] = vertex_mass_*dv_[i] -
+            timestep_*internal_forces_[i] -
+            timestep_*external_forces_[i];
+  }
+}
+
+void BasicRod::ComputeJG()
+{
+  const int kl = 5;
+  const int ku = 5;
+  auto to_global = [&](const ivec2 block, const ivec2 local_row_col)
+  {
+    int row = 3*block.x + local_row_col.x;
+    int col = 3*block.y + local_row_col.y;
+    int band_row = kl+ku+row-col;
+    int band_col = col;
+    int ld = 2*kl+ku+1;
+    return band_row + band_col*ld;
+  };
+
+  int index;
+  mat3 block;
+  for (int i = 0; i < num_vertices_; ++i)
+  {
+    block = GetStretchEnergyVertexHessian(i,i);
+    for (int k = 0; k < 3; ++k)
+    {
+      for (int l = 0; l < 3; ++l)
+      {
+        index = to_global({i, i}, {k, l});
+        Jg_[index] = timestep_*timestep_*block[l][k];
+      }
+    }
+  }
+
+  for (int i = 0; i < num_vertices_-1; ++i)
+  {
+    block = GetStretchEnergyVertexHessian(i,i+1);
+    for (int k = 0; k < 3; ++k)
+    {
+      for (int l = 0; l < 3; ++l)
+      {
+        index = to_global({i, i+1}, {k, l});
+        Jg_[index] = timestep_*timestep_*block[l][k];
+      }
+    }
+
+    block = GetStretchEnergyVertexHessian(i+1,i);
+    for (int k = 0; k < 3; ++k)
+    {
+      for (int l = 0; l < 3; ++l)
+      {
+        index = to_global({i+1, i}, {k, l});
+        Jg_[index] = timestep_*timestep_*block[l][k];
+      }
+    }
+  }
+
+  for (int i = 0; i < 3*num_vertices_; ++i)
+    Jg_[kl+ku + 16*i] += vertex_mass_;
 }

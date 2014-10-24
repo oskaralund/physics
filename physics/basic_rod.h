@@ -30,14 +30,10 @@ public:
   const std::vector<glm::vec3>& GetVertices() const override { return vertices_; }
 
 private:
-  enum RelativePosition { PREV, CURR, NEXT };
   void Init();
   void IntegrateForces();
-  void EnforceLengthConstraints();
   void ComputeEdges();
   void ComputeBinorms();
-  void ComputeConstraints();
-  void ComputeConstraintMatrix();
   void ComputeReferenceTwist();
   void ComputeMaterialFrames();
   void ComputeInternalForces();
@@ -92,20 +88,14 @@ private:
   float vertex_mass_;
   float vertex_mass_inv_ = 1/vertex_mass_;
   float angle_tolerance_ = 2.0f*3.1415f/1000.0f;
-  float timestep_ = 5e-4f;
-  float young_modulus_ = 1e4f;
+  float timestep_ = 1e-2f;
+  float young_modulus_ = 1e5f;
   float shear_modulus_ = 1e3f;
   float damping_ = 0.001f;
   float viscosity_ = 5.5f;
 
   glm::vec3 gravity_{0.0f, -9.82f, 0.0f};
 
-  std::vector<float> constraints_;
-  std::vector<float> constr_diagonal_;
-  std::vector<float> constr_off_diagonal_;
-  std::vector<float> energy_angle_gradient_;
-  std::vector<float> energy_angle_hessian_diag_;
-  std::vector<float> energy_angle_hessian_off_diag_;
   std::vector<float> reference_twist_;
   std::vector<float> material_frame_angles_;
   std::vector<float> angle_velocities_;
@@ -121,6 +111,14 @@ private:
   std::vector<glm::vec3> internal_forces_;
   std::vector<std::pair<glm::vec3, glm::vec3>> reference_frames_;
   std::vector<std::pair<glm::vec3, glm::vec3>> material_frames_;
+
+  /* IMPLICIT INTEGRATION */
+  void IntegrateImplicit();
+  void ComputeG();
+  void ComputeJG();
+  std::vector<glm::vec3> dv_;
+  std::vector<glm::vec3> g_;
+  std::vector<float> Jg_;
 };
 
 #endif
